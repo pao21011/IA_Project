@@ -11,7 +11,7 @@ import numpy as np
 app = Flask(__name__)
 
 # use model 1 ( predict what is it )
-model1 = YOLO('best1_v5.pt')
+model1 = YOLO('best1_v4.pt')
 
 # use model 2 ( predict the state )
 model2 = YOLO('best2_v2.pt')
@@ -66,8 +66,8 @@ def index():
         # model 1
             results1 = model1(image_path)
             filtered_boxes = []
-            for result1 in results1:
-                for box in result1.boxes:
+            for result in results1:
+                for box in result.boxes:
                     if box.conf >= 0.55:
                         filtered_boxes.append(box)
             result_image1 = results1[0].plot()
@@ -78,8 +78,8 @@ def index():
             # model 2
             results2 = model2(image_path)
             filtered_boxes = []
-            for result2 in results2:
-                for box in result2.boxes:
+            for result in results2:
+                for box in result.boxes:
                     if box.conf >= 0.55:
                         filtered_boxes.append(box)
             result_image2 = results2[0].plot()
@@ -96,7 +96,7 @@ def index():
             return render_template('ObjectDetection.html', summary1=summary1, summary2=summary2, image_pred1=result_path1, image_pred2=result_path2, image_path=image_path, alert_message=alert_message)
 
     return render_template('index.html', image_path=None)
-
+    
 def summarize_results_model(results, model_name):
     detected_classes = {}
     
@@ -138,7 +138,9 @@ def get_class_name(class_id, model_name):
         return class_map_model1.get(class_id, "unknown")
     elif model_name == "Model 2":
         return class_map_model2.get(class_id, "unknown")
-
+        
+#====================================================================================#
+# video
 @app.route('/vidpred', methods=['GET', 'POST'])
 def vidpred():
     if request.method == 'POST':
@@ -166,7 +168,7 @@ def vidpred():
     summary2 = session.get('summary2', None)
     
     return render_template('UploadVideo.html', summary1=summary1, summary2=summary2)
-
+    
 def process_video(video_path):
     # Process the video with models
     results1 = model1(video_path)
@@ -179,20 +181,25 @@ def process_video(video_path):
     # Store results in session
     session['summary1'] = summary1
     session['summary2'] = summary2
+    
 #====================================================================================#
-
-
 
 @app.route('/live_feed')
 def live_feed():
     return Response(generate_live_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_live_frames():
-    cap = cv2.VideoCapture(0)  # Use the default webcam
+    cap = cv2.VideoCapture(0)  
 
     while True:
-        success, frame = cap.read()
-
+        ret, img = cap.read()
+        cv2.imshow('Webcam', img)
+        if  cv2.waitKey(1) == ord('q'):
+            break
+        
+        cap.release()
+        cv2.destoryAllWindow()
+        
         if success:
             # Perform prediction with model1
             results1 = model1(frame)
