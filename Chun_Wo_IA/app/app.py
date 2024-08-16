@@ -11,14 +11,12 @@ import numpy as np
 app = Flask(__name__)
 
 # use model 1 ( predict what is it )
-model1 = YOLO('best1_v4.pt')
+model1 = YOLO('best1_v5.pt')
 
 # use model 2 ( predict the state )
 model2 = YOLO('best2_v2.pt')
 
-
 #====================================================================================#
-
 
 # give every image name
 def generate_unique_filename(filename):
@@ -45,20 +43,17 @@ def objectDetection():
 @app.route('/index.css')
 def serve_static_file():
     return send_from_directory('static', 'index.css')
-    
-
-#====================================================================================#
 
 @app.route('/imgpred', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        # 检查是否上传文件
+        # upload img
         if 'image' not in request.files:
             return redirect(request.url)
 
         file = request.files['image']
         
-        # 检查用户是否选择了文件
+        # check user uploaded img
         if file.filename == '':
             return redirect(request.url)
 
@@ -67,33 +62,38 @@ def index():
             image_path = os.path.join('static', 'images', unique_filename)
             file.save(image_path)
             
-            try:
-            # Model predictions
-                results1 = model1(image_path)
-                result_image1 = results1[0].plot()  # 假设只处理第一个结果
-                result_path1 = os.path.join('static', 'images', 'result_model1_' + unique_filename)
-                Image.fromarray(result_image1[..., ::-1]).save(result_path1)
-                
-                summary1 = summarize_results_model(results1, "Model 1")
+        # Model predictions
+        # model 1
+            results1 = model1(image_path)
+            filtered_boxes = []
+            for result1 in results1:
+                for box in result1.boxes:
+                    if box.conf >= 0.55:
+                        filtered_boxes.append(box)
+            result_image1 = results1[0].plot()
+            result_path1 = os.path.join('static', 'images', 'result_model1_' + unique_filename)
+            Image.fromarray(result_image1[..., ::-1]).save(result_path1)
+            summary1 = summarize_results_model(results1, "Model 1")
 
-                results2 = model2(image_path)
-                result_image2 = results2[0].plot()  # 假设只处理第一个结果
-                result_path2 = os.path.join('static', 'images', 'result_model2_' + unique_filename)
-                Image.fromarray(result_image2[..., ::-1]).save(result_path2)
+            # model 2
+            results2 = model2(image_path)
+            filtered_boxes = []
+            for result2 in results2:
+                for box in result2.boxes:
+                    if box.conf >= 0.55:
+                        filtered_boxes.append(box)
+            result_image2 = results2[0].plot()
+            result_path2 = os.path.join('static', 'images', 'result_model2_' + unique_filename)
+            Image.fromarray(result_image2[..., ::-1]).save(result_path2)
+            summary2 = summarize_results_model(results2, "Model 2")
                 
-                summary2 = summarize_results_model(results2, "Model 2")
-                
-                # Check if "wet" is detected
-                if "wet" in summary2:
-                    alert_message = "Warning: Wet condition detected!"
-                else:
-                    alert_message = None
+            # Check if "wet" is detected
+            if "wet" in summary2:
+                alert_message = "Warning: Wet condition detected!"
+            else:
+                alert_message = None
 
-        
-                return render_template('ObjectDetection.html', summary1=summary1, summary2=summary2, image_pred1=result_path1, image_pred2=result_path2, image_path=image_path, alert_message=alert_message)
-
-            except Exception as e:
-                return render_template('ObjectDetection.html', error=f"发生错误: {e}")
+            return render_template('ObjectDetection.html', summary1=summary1, summary2=summary2, image_pred1=result_path1, image_pred2=result_path2, image_path=image_path, alert_message=alert_message)
 
     return render_template('index.html', image_path=None)
 
@@ -138,9 +138,7 @@ def get_class_name(class_id, model_name):
         return class_map_model1.get(class_id, "unknown")
     elif model_name == "Model 2":
         return class_map_model2.get(class_id, "unknown")
-        
-        
-#====================================================================================#
+
 @app.route('/vidpred', methods=['GET', 'POST'])
 def vidpred():
     if request.method == 'POST':
