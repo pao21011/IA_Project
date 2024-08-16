@@ -11,10 +11,10 @@ import numpy as np
 app = Flask(__name__)
 
 # use model 1 ( predict what is it )
-model1 = YOLO('best1_v4.pt')
+model1 = YOLO('model_version/best1_v6.pt')
 
 # use model 2 ( predict the state )
-model2 = YOLO('best2_v2.pt')
+model2 = YOLO('model_version/best2_v2.pt')
 
 #====================================================================================#
 
