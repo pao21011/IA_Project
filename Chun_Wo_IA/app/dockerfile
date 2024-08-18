@@ -10,10 +10,12 @@ RUN pip install opencv-python
 RUN pip install flask
 RUN pip install Flask-SocketIO
 # numpy [train model]
-RUN pip install numpy 
+RUN pip install numpy
+
+# RUN ["pip3", "install", "-r", "requirements.txt"]
 # pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 # pip install cuda-python==12.4
 # If necessary, you can go to the "NVIDIA" website to download the driver
 
 # start cmd auto type "python app.py"
-CMD ["python", "app.py"]
+CMD ["python3", "app.py"]
