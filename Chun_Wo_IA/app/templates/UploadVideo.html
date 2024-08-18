@@ -1,69 +1,73 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>影片檢測</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="./index.css" type="text/css">
-    <style>
-        #video-container {
-            width: 100%;
-            margin: auto;
-        }
-        #live-video {
-            width: 100%;
-            height: auto;
-            display: none; /* 初始隱藏直播影片 */
-        }
-    </style>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  </head>
-  <body>
-    <br />
-    <br />
-	
-	<div>
-		<center>
-			<h1>影片檢測</h1> <!-- UV -->
-            <hr />
-			<h2>請上傳所需檢測的<u><b><i>影片</i></b></u></h2>
-			
+
+<head>
+  <title>影片檢測</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./index.css" type="text/css">
+  <style>
+    #video-container {
+      width: 100%;
+      margin: auto;
+    }
+
+    #live-video {
+      width: 100%;
+      height: auto;
+      display: none;
+      /* 初始隱藏直播影片 */
+    }
+  </style>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head>
+
+<body>
+  <br />
+  <br />
+
+  <div>
+    <center>
+      <h1>影片檢測</h1> <!-- UV -->
+      <hr />
+      <h2>請上傳所需檢測的<u><b><i>影片</i></b></u></h2>
+
       <form action="{{ url_for('vidpred') }}" method="post" enctype="multipart/form-data">
         <input type="file" name="video" accept="video/*" required>
-				<button type="submit">上傳</button>
-			</form>
+        <button type="submit">上傳</button>
+      </form>
 
-      {% if summary1 or summary2 %}
-      <div class="results">
-          <h2>Detection Results</h2>
-          <p><strong>Model 1 Summary:</strong> {{ summary1 if summary1 else 'No results yet.' }}</p>
-          <p><strong>Model 2 Summary:</strong> {{ summary2 if summary2 else 'No results yet.' }}</p>
-      </div>
+      {% if summary1 %}
+      <h2>模型1的结果</h2>
+      <p>{{ summary1 }}</p>
+      {% else %}
+      <h2>模型1尚无结果。</h2>
       {% endif %}
-		</center>
-	</div>
-    <br />
-    
-    <div id="header">
-      <span style="font-size: 30px; cursor: pointer" onclick="openMenu()">
-        &#9776; 
-      </span>
-    </div>
-    <div class="setMenu" id="menu">
-		<a href="javascript:void(0)" class="close" onclick="closeMenu()">&times;</a>
-		<a href="{{ url_for('index') }}">首頁</a>
-		<a href="{{ url_for('liveDetect') }}">實時檢測</a>
-		<a href="{{ url_for('uploadVideo') }}">影片檢測</a>
-		<a href="{{ url_for('objectDetection') }}">圖像檢測</a>
-    </div>
-    <script>
-      function openMenu() {
-        document.getElementById("menu").style.width = "250px";
-      }
+    </center>
+  </div>
+  <br />
 
-      function closeMenu() {
-        document.getElementById("menu").style.width = "0";
-      }
-    </script>
-  </body>
+  <div id="header">
+    <span style="font-size: 30px; cursor: pointer" onclick="openMenu()">
+      &#9776;
+    </span>
+  </div>
+  <div class="setMenu" id="menu">
+    <a href="javascript:void(0)" class="close" onclick="closeMenu()">&times;</a>
+    <a href="{{ url_for('index') }}">首頁</a>
+    <a href="{{ url_for('liveDetect') }}">實時檢測</a>
+    <a href="{{ url_for('uploadVideo') }}">影片檢測</a>
+    <a href="{{ url_for('objectDetection') }}">圖像檢測</a>
+  </div>
+  <script>
+    function openMenu() {
+      document.getElementById("menu").style.width = "250px";
+    }
+
+    function closeMenu() {
+      document.getElementById("menu").style.width = "0";
+    }
+  </script>
+</body>
+
 </html>

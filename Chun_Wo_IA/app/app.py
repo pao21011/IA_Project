@@ -11,10 +11,10 @@ import numpy as np
 app = Flask(__name__)
 
 # use model 1 ( predict what is it )
-model1 = YOLO('model_version/best1_v6.pt')
+model1 = YOLO('model_version/model1_v6.pt')
 
 # use model 2 ( predict the state )
-model2 = YOLO('model_version/best2_v2.pt')
+model2 = YOLO('model_version/model2_v2.pt')
 
 #====================================================================================#
 
@@ -23,6 +23,19 @@ def generate_unique_filename(filename):
     _, extension = os.path.splitext(filename)
     unique_filename = str(uuid.uuid4()) + extension
     return unique_filename
+
+def process_video(video_path):
+    # Process the video with models
+    results1 = model1(video_path)
+    results2 = model2(video_path)
+
+    # Summarize results
+    summary1 = summarize_results_model(results1, "Model 1")
+    summary2 = summarize_results_model(results2, "Model 2")
+    
+    # Store results in session
+    session['summary1'] = summary1
+    session['summary2'] = summary2
 
 @app.route('/')
 def home():
@@ -168,20 +181,7 @@ def vidpred():
     summary2 = session.get('summary2', None)
     
     return render_template('UploadVideo.html', summary1=summary1, summary2=summary2)
-    
-def process_video(video_path):
-    # Process the video with models
-    results1 = model1(video_path)
-    results2 = model2(video_path)
 
-    # Summarize results
-    summary1 = summarize_results_model(results1, "Model 1")
-    summary2 = summarize_results_model(results2, "Model 2")
-    
-    # Store results in session
-    session['summary1'] = summary1
-    session['summary2'] = summary2
-    
 #====================================================================================#
 
 @app.route('/live_feed')
