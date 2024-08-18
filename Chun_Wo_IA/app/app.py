@@ -1,4 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, send_from_directory, send_file, session
+from flask import ( Flask, render_template, 
+                   request, redirect, 
+                   url_for, Response, 
+                   jsonify, send_from_directory, 
+                   send_file, session )
 from ultralytics import YOLO
 import cv2
 import os
@@ -76,13 +80,8 @@ def index():
             file.save(image_path)
             
         # Model predictions
-        # model 1
+            # model 1
             results1 = model1(image_path)
-            filtered_boxes = []
-            for result in results1:
-                for box in result.boxes:
-                    if box.conf >= 0.55:
-                        filtered_boxes.append(box)
             result_image1 = results1[0].plot()
             result_path1 = os.path.join('static', 'images', 'result_model1_' + unique_filename)
             Image.fromarray(result_image1[..., ::-1]).save(result_path1)
@@ -90,11 +89,6 @@ def index():
 
             # model 2
             results2 = model2(image_path)
-            filtered_boxes = []
-            for result in results2:
-                for box in result.boxes:
-                    if box.conf >= 0.55:
-                        filtered_boxes.append(box)
             result_image2 = results2[0].plot()
             result_path2 = os.path.join('static', 'images', 'result_model2_' + unique_filename)
             Image.fromarray(result_image2[..., ::-1]).save(result_path2)
