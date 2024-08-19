@@ -1,73 +1,90 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-  <title>影片檢測</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="./index.css" type="text/css">
-  <style>
-    #video-container {
-      width: 100%;
-      margin: auto;
-    }
-
-    #live-video {
-      width: 100%;
-      height: auto;
-      display: none;
-      /* 初始隱藏直播影片 */
-    }
-  </style>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>影片檢測</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./index.css" type="text/css">
+    <style>
+        #video-container {
+            width: 100%;
+            margin: auto;
+        }
+        #live-video {
+            width: 100%;
+            height: auto;
+            display: none; /* 初始隱藏直播影片 */
+        }
+    </style>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 </head>
-
 <body>
-  <br />
-  <br />
+    <br />
+    <br />
+    
+    <div>
+        <center>
+            <h1>影片檢測</h1>
+            <hr />
+            <h2>請上傳所需檢測的<u><b><i>影片</i></b></u></h2>
+            
+            <form action="{{ url_for('vidpred') }}" method="post" enctype="multipart/form-data">
+                <input type="file" name="video" accept="video/*" required>
+                <button type="submit">上傳</button>
+            </form>
 
-  <div>
-    <center>
-      <h1>影片檢測</h1> <!-- UV -->
-      <hr />
-      <h2>請上傳所需檢測的<u><b><i>影片</i></b></u></h2>
+            {% if filename %}
+            <div id="video-container">
+                <h2>處理中影片:</h2>
+                <img id="live-video" src="{{ url_for('video_feed', filename=filename) }}" style="display: block; width: 800px; height: auto;" />
+            </div>
+            <br>
+            <button id="stop-button" onclick="stopProcess()" style="padding: 10px 20px; font-size: 16px;">停止</button>
+            {% endif %}
+        </center>
+    </div>
+    <br />
+    
+    <div id="header">
+        <span style="font-size: 30px; cursor: pointer" onclick="openMenu()">
+            &#9776; 
+        </span>
+    </div>
+    <div class="setMenu" id="menu">
+        <a href="javascript:void(0)" class="close" onclick="closeMenu()">&times;</a>
+        <a href="{{ url_for('index') }}">首頁</a>
+        <a href="{{ url_for('liveDetect') }}">實時檢測</a>
+        <a href="{{ url_for('uploadVideo') }}">影片檢測</a>
+        <a href="{{ url_for('objectDetection') }}">圖像檢測</a>
+    </div>
+    <script>
+        function openMenu() {
+            document.getElementById("menu").style.width = "250px";
+        }
 
-      <form action="{{ url_for('vidpred') }}" method="post" enctype="multipart/form-data">
-        <input type="file" name="video" accept="video/*" required>
-        <button type="submit">上傳</button>
-      </form>
+        function closeMenu() {
+            document.getElementById("menu").style.width = "0";
+        }
 
-      {% if summary1 %}
-      <h2>模型1的结果</h2>
-      <p>{{ summary1 }}</p>
-      {% else %}
-      <h2>模型1尚无结果。</h2>
-      {% endif %}
-    </center>
-  </div>
-  <br />
-
-  <div id="header">
-    <span style="font-size: 30px; cursor: pointer" onclick="openMenu()">
-      &#9776;
-    </span>
-  </div>
-  <div class="setMenu" id="menu">
-    <a href="javascript:void(0)" class="close" onclick="closeMenu()">&times;</a>
-    <a href="{{ url_for('index') }}">首頁</a>
-    <a href="{{ url_for('liveDetect') }}">實時檢測</a>
-    <a href="{{ url_for('uploadVideo') }}">影片檢測</a>
-    <a href="{{ url_for('objectDetection') }}">圖像檢測</a>
-  </div>
-  <script>
-    function openMenu() {
-      document.getElementById("menu").style.width = "250px";
-    }
-
-    function closeMenu() {
-      document.getElementById("menu").style.width = "0";
-    }
-  </script>
+        function stopProcess() {
+            const videoElement = document.getElementById('live-video');
+            if (videoElement) {
+                videoElement.style.display = "none"; // Hide the video
+                videoElement.src = ""; // Optionally clear the source
+            }
+            // Send a request to stop processing on the server
+            fetch('/stop_processing', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Processing stopped successfully');
+                    } else {
+                        console.error('Failed to stop processing');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+    </script>
 </body>
-
 </html>

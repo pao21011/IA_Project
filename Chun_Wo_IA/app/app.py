@@ -1,8 +1,4 @@
-from flask import ( Flask, render_template, 
-                   request, redirect, 
-                   url_for, Response, 
-                   jsonify, send_from_directory, 
-                   send_file, session )
+from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, send_from_directory, send_file, session
 from ultralytics import YOLO
 import cv2
 import os
@@ -20,6 +16,9 @@ model1 = YOLO('model_version/model1_v6.pt')
 # use model 2 ( predict the state )
 model2 = YOLO('model_version/model2_v2.pt')
 
+# video model 
+modelVideo = YOLO('model_version/model_video_v1.pt')
+
 #====================================================================================#
 
 # give every image name
@@ -27,19 +26,6 @@ def generate_unique_filename(filename):
     _, extension = os.path.splitext(filename)
     unique_filename = str(uuid.uuid4()) + extension
     return unique_filename
-
-def process_video(video_path):
-    # Process the video with models
-    results1 = model1(video_path)
-    results2 = model2(video_path)
-
-    # Summarize results
-    summary1 = summarize_results_model(results1, "Model 1")
-    summary2 = summarize_results_model(results2, "Model 2")
-    
-    # Store results in session
-    session['summary1'] = summary1
-    session['summary2'] = summary2
 
 @app.route('/')
 def home():
@@ -80,8 +66,13 @@ def index():
             file.save(image_path)
             
         # Model predictions
-            # model 1
+        # model 1
             results1 = model1(image_path)
+            filtered_boxes = []
+            for result in results1:
+                for box in result.boxes:
+                    if box.conf >= 0.55:
+                        filtered_boxes.append(box)
             result_image1 = results1[0].plot()
             result_path1 = os.path.join('static', 'images', 'result_model1_' + unique_filename)
             Image.fromarray(result_image1[..., ::-1]).save(result_path1)
@@ -89,6 +80,11 @@ def index():
 
             # model 2
             results2 = model2(image_path)
+            filtered_boxes = []
+            for result in results2:
+                for box in result.boxes:
+                    if box.conf >= 0.55:
+                        filtered_boxes.append(box)
             result_image2 = results2[0].plot()
             result_path2 = os.path.join('static', 'images', 'result_model2_' + unique_filename)
             Image.fromarray(result_image2[..., ::-1]).save(result_path2)
@@ -148,8 +144,33 @@ def get_class_name(class_id, model_name):
         
 #====================================================================================#
 # video
+processing = False
+
+def generate_unique_filename(filename):
+    # Implement your unique filename generation logic here
+    return filename
+
+def process_video(video_path):
+    global processing
+    cap = cv2.VideoCapture(video_path)
+    
+    while cap.isOpened() and processing:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Perform predictions with model 3
+        results3 = modelVideo(frame)
+        annotated_frame3 = results3[0].plot()
+
+        # Save or stream the annotated frame as needed
+        # Here you can save frames or manage streaming as needed
+
+    cap.release()
+
 @app.route('/vidpred', methods=['GET', 'POST'])
 def vidpred():
+    global processing
     if request.method == 'POST':
         if 'video' not in request.files:
             return redirect(request.url)
@@ -165,17 +186,42 @@ def vidpred():
             os.makedirs(os.path.dirname(video_path), exist_ok=True)
             file.save(video_path)
 
-            # Start processing in a background thread
+            processing = True  # Set processing to True
             threading.Thread(target=process_video, args=(video_path,)).start()
 
-            return redirect(url_for('vidpred'))  # Redirect to show results
+            return render_template('UploadVideo.html', filename=unique_filename)
 
-    # Display results if available
-    summary1 = session.get('summary1', None)
-    summary2 = session.get('summary2', None)
+    return render_template('UploadVideo.html')
+
+def generate_video_frames(video_path):
+    cap = cv2.VideoCapture(video_path)
+
+    while cap.isOpened() and processing:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Perform predictions with model 3
+        results3 = modelVideo(frame)
+        annotated_frame3 = results3[0].plot()
+
+        # Convert to JPEG
+        ret, buffer = cv2.imencode('.jpg', annotated_frame3)
+        frame_bytes = buffer.tobytes()
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+@app.route('/video_feed/<filename>')
+def video_feed(filename):
+    return Response(generate_video_frames(os.path.join('static', 'videos', filename)), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/stop_processing', methods=['POST'])
+def stop_processing():
+    global processing
+    processing = False  # Set processing to False
+    return jsonify(success=True)
     
-    return render_template('UploadVideo.html', summary1=summary1, summary2=summary2)
-
 #====================================================================================#
 
 @app.route('/live_feed')
