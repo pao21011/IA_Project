@@ -20,13 +20,13 @@ import numpy as np
 app = Flask(__name__)
 
 # use model 1 ( predict what is it )
-model1 = YOLO('model_version/model1_v6.pt')
+model1 = YOLO('model_version/model1_v7.pt')
 
 # use model 2 ( predict the state )
 model2 = YOLO('model_version/model2_v2.pt')
 
 # video model 
-modelVideo = YOLO('model_version/model_video_v1.pt')
+modelVideo = YOLO('model_version/model_video_v2.pt')
 
 #====================================================================================#
 
