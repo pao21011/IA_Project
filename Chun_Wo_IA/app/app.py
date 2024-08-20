@@ -1,4 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, Response, jsonify, send_from_directory, send_file, session
+from flask import(Flask, 
+                  render_template, 
+                  request, 
+                  redirect, 
+                  url_for, 
+                  Response, 
+                  jsonify, 
+                  send_from_directory, 
+                  send_file, 
+                  session)
 from ultralytics import YOLO
 import cv2
 import os
