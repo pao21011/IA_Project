@@ -20,13 +20,22 @@ import numpy as np
 app = Flask(__name__)
 
 # use model 1 ( predict what is it )
-model1 = YOLO('model_version/model1_v7.pt')
+#model1 = YOLO('model_version/model1_v7.pt')
 
 # use model 2 ( predict the state )
-model2 = YOLO('model_version/model2_v2.pt')
+#model2 = YOLO('model_version/model2_v2.pt')
 
 # video model 
-modelVideo = YOLO('model_version/model_video_v2.pt')
+#modelVideo = YOLO('model_version/model_video_v2.pt')
+
+# use model 1 ( predict what is it )
+model1 = YOLO('best.pt')
+
+# use model 2 ( predict the state )
+model2 = YOLO('best.pt')
+
+# video model 
+modelVideo = YOLO('best.pt')
 
 #====================================================================================#
 
@@ -59,53 +68,46 @@ def serve_static_file():
 @app.route('/imgpred', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        # upload img
+        # Upload image
         if 'image' not in request.files:
             return redirect(request.url)
 
         file = request.files['image']
         
-        # check user uploaded img
+        # Check user uploaded image
         if file.filename == '':
             return redirect(request.url)
 
         if file:
+            # Ensure the required directories exist
+            base_dir = os.path.join('static', 'images')
+            os.makedirs(os.path.join(base_dir, 'originals'), exist_ok=True)
+            os.makedirs(os.path.join(base_dir, 'results_model1'), exist_ok=True)
+            os.makedirs(os.path.join(base_dir, 'results_model2'), exist_ok=True)
+
             unique_filename = generate_unique_filename(file.filename)
-            image_path = os.path.join('static', 'images', unique_filename)
-            file.save(image_path)
+            original_image_path = os.path.join(base_dir, 'originals', unique_filename)
+            file.save(original_image_path)
             
-        # Model predictions
-        # model 1
-            results1 = model1(image_path)
-            filtered_boxes = []
-            for result in results1:
-                for box in result.boxes:
-                    if box.conf >= 0.55:
-                        filtered_boxes.append(box)
+            # Model predictions
+            # Model 1
+            results1 = model1(original_image_path)
             result_image1 = results1[0].plot()
-            result_path1 = os.path.join('static', 'images', 'result_model1_' + unique_filename)
+            result_path1 = os.path.join(base_dir, 'results_model1', 'result_model1_' + unique_filename)
             Image.fromarray(result_image1[..., ::-1]).save(result_path1)
             summary1 = summarize_results_model(results1, "Model 1")
 
-            # model 2
-            results2 = model2(image_path)
-            filtered_boxes = []
-            for result in results2:
-                for box in result.boxes:
-                    if box.conf >= 0.55:
-                        filtered_boxes.append(box)
+            # Model 2
+            results2 = model2(original_image_path)
             result_image2 = results2[0].plot()
-            result_path2 = os.path.join('static', 'images', 'result_model2_' + unique_filename)
+            result_path2 = os.path.join(base_dir, 'results_model2', 'result_model2_' + unique_filename)
             Image.fromarray(result_image2[..., ::-1]).save(result_path2)
             summary2 = summarize_results_model(results2, "Model 2")
                 
             # Check if "wet" is detected
-            if "wet" in summary2:
-                alert_message = "Warning: Wet condition detected!"
-            else:
-                alert_message = None
+            alert_message = "Warning: Wet condition detected!" if "wet" in summary2 else None
 
-            return render_template('ObjectDetection.html', summary1=summary1, summary2=summary2, image_pred1=result_path1, image_pred2=result_path2, image_path=image_path, alert_message=alert_message)
+            return render_template('ObjectDetection.html', summary1=summary1, summary2=summary2, image_pred1=result_path1, image_pred2=result_path2, image_path=original_image_path, alert_message=alert_message)
 
     return render_template('index.html', image_path=None)
     
@@ -152,6 +154,7 @@ def get_class_name(class_id, model_name):
         return class_map_model2.get(class_id, "unknown")
         
 #====================================================================================#
+
 # video
 # Global variable to manage processing status
 processing = False
@@ -291,52 +294,49 @@ def live_feed():
     return Response(generate_live_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def generate_live_frames():
-    cap = cv2.VideoCapture(0)  
+    cap = cv2.VideoCapture(0)
 
     while True:
-        ret, img = cap.read()
-        cv2.imshow('Webcam', img)
-        if  cv2.waitKey(1) == ord('q'):
+        ret, frame = cap.read()
+        if not ret:
             break
-        
-        cap.release()
-        cv2.destoryAllWindow()
-        
-        if success:
-            # Perform prediction with model1
-            results1 = model1(frame)
-            annotated_frame1 = results1[0].plot()
 
-            # Perform prediction with model2
-            results2 = model2(frame)
-            annotated_frame2 = results2[0].plot()
+        # 使用 model1 进行预测
+        results1 = model1(frame)
+        annotated_frame1 = results1[0].plot()
 
-            # Combine the annotated frames from both models
-            combined_frame = cv2.addWeighted(annotated_frame1, 0.5, annotated_frame2, 0.5, 0)
+        # 使用 model2 进行预测
+        results2 = model2(frame)
+        annotated_frame2 = results2[0].plot()
 
-            # Convert the combined frame to JPEG format
-            ret, buffer = cv2.imencode('.jpg', combined_frame)
-            frame_bytes = buffer.tobytes()
+        # 合并两个模型标注的帧
+        combined_frame = cv2.addWeighted(annotated_frame1, 0.5, annotated_frame2, 0.5, 0)
 
-            # Yield the frame bytes as part of the response
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        else:
-            break
+        # 将合并后的帧转换为 JPEG 格式
+        ret, buffer = cv2.imencode('.jpg', combined_frame)
+        frame_bytes = buffer.tobytes()
+
+        # 将帧字节作为响应的一部分进行返回
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
     cap.release()
+    cv2.destroyAllWindows()
 
+#====================================================================================#
 def delete_images_after_delay():
     while True:
-        time.sleep(86400)  # Wait 1 day
+        time.sleep(120)  # 等兩分鐘
         image_folder = 'static/images'
         for filename in os.listdir(image_folder):
             file_path = os.path.join(image_folder, filename)
             try:
                 if os.path.isfile(file_path):
-                    os.remove(file_path)
+                    # 睇下文件係咪已經超過24小時
+                    if os.stat(file_path).st_mtime < time.time() - 86400:
+                        os.remove(file_path)
             except Exception as e:
-                print(f"Error deleting file {file_path}: {e}")
+                print(f"刪除文件 {file_path} 嘅時候出錯: {e}")
 
 # Flask route to delete images after 2 minutes
 
@@ -347,7 +347,7 @@ def delete():
     threading.Thread(target=delete_images_after_delay).start()
     return jsonify({"message": "Images will be deleted continuously after 2 minutes."})
 
+#====================================================================================#
 
- 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8080, debug=True)
