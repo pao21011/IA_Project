@@ -182,8 +182,15 @@ def summarize_results_model(results, model_name):
 # 取得類別名稱 (圖片)
 def get_class_name(class_id, model_name):
     class_map = {
-        "Model 1": {0: "construction_waste", 1: "rock", 2: "slurry", 3: "soil"},
-        "Model 2": {0: "Dry", 1: "Wet"}
+        "Model 1": {        
+            0: "Slurry",
+            1: "dirt",
+            2: "nothing",
+            3: "other",
+            4: "stone"},
+        "Model 2": {        
+            0: "dry",
+            1: "wet"}
     }
     return class_map[model_name].get(class_id, "Unknown")
 ########################################
